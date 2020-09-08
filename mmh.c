@@ -108,7 +108,7 @@ static void mmh_push_down(MinMaxHeap* mmh, int i) {
 static void mmh_push_down_min(MinMaxHeap* mmh, int m) {
     while (1) {
         int i = m;
-        int g = 0;
+        int p = -1;
         int mval = INT32_MAX;
         m = -1;
         int l = MMH_LEFT(mmh, i);
@@ -116,14 +116,14 @@ static void mmh_push_down_min(MinMaxHeap* mmh, int m) {
             if (mval > mmh->dat[l]) {
                 mval = mmh->dat[l];
                 m = l;
-                g = 0;
+                p = -1;
             }
             int ll = MMH_LEFT(mmh, l);
             if (ll >= 0 && ll < mmh->pos) {
                 if (mval > mmh->dat[ll]) {
                     mval = mmh->dat[ll];
                     m = ll;
-                    g = 1;
+                    p = l;
                 }
             }
             int lr = MMH_RIGHT(mmh, l);
@@ -131,7 +131,7 @@ static void mmh_push_down_min(MinMaxHeap* mmh, int m) {
                 if (mval > mmh->dat[lr]) {
                     mval = mmh->dat[lr];
                     m = lr;
-                    g = 1;
+                    p = l;
                 }
             }
         }
@@ -140,14 +140,14 @@ static void mmh_push_down_min(MinMaxHeap* mmh, int m) {
             if (mval > mmh->dat[r]) {
                 mval = mmh->dat[r];
                 m = r;
-                g = 0;
+                p = -1;
             }
             int rl = MMH_LEFT(mmh, r);
             if (rl >= 0 && rl < mmh->pos) {
                 if (mval > mmh->dat[rl]) {
                     mval = mmh->dat[rl];
                     m = rl;
-                    g = 1;
+                    p = r;
                 }
             }
             int rr = MMH_RIGHT(mmh, r);
@@ -155,28 +155,22 @@ static void mmh_push_down_min(MinMaxHeap* mmh, int m) {
                 if (mval > mmh->dat[rr]) {
                     mval = mmh->dat[rr];
                     m = rr;
-                    g = 1;
+                    p = r;
                 }
             }
         }
         if (m < 0) {
             break;
         }
-        if (g) {
-            // printf("pushdown_min node %d=%d min %d=%d (grandchild)\n", i, mmh->dat[i], m, mmh->dat[m]);
+        if (p >= 0) {
             if (mmh->dat[m] < mmh->dat[i]) {
                 MMH_SWAP(mmh, m, i);
-                // printf("  swap %d %d\n", m, i);
-                int p = MMH_PARENT(mmh, m);
                 if (mmh->dat[m] > mmh->dat[p]) {
                     MMH_SWAP(mmh, m, p);
-                    // printf("  swap parent %d %d\n", m, p);
                 }
             }
         } else if (mmh->dat[m] < mmh->dat[i]) {
-            // printf("pushdown_min node %d=%d min %d=%d\n", i, mmh->dat[i], m, mmh->dat[m]);
             MMH_SWAP(mmh, m, i);
-            // printf("  swap %d %d\n", m, i);
         } else {
             break;
         }
@@ -186,7 +180,7 @@ static void mmh_push_down_min(MinMaxHeap* mmh, int m) {
 static void mmh_push_down_max(MinMaxHeap* mmh, int m) {
     while (1) {
         int i = m;
-        int g = 0;
+        int p = -1;
         int mval = INT32_MIN;
         m = -1;
         int l = MMH_LEFT(mmh, i);
@@ -194,14 +188,14 @@ static void mmh_push_down_max(MinMaxHeap* mmh, int m) {
             if (mval < mmh->dat[l]) {
                 mval = mmh->dat[l];
                 m = l;
-                g = 0;
+                p = -1;
             }
             int ll = MMH_LEFT(mmh, l);
             if (ll >= 0 && ll < mmh->pos) {
                 if (mval < mmh->dat[ll]) {
                     mval = mmh->dat[ll];
                     m = ll;
-                    g = 1;
+                    p = l;
                 }
             }
             int lr = MMH_RIGHT(mmh, l);
@@ -209,7 +203,7 @@ static void mmh_push_down_max(MinMaxHeap* mmh, int m) {
                 if (mval < mmh->dat[lr]) {
                     mval = mmh->dat[lr];
                     m = lr;
-                    g = 1;
+                    p = l;
                 }
             }
         }
@@ -218,14 +212,14 @@ static void mmh_push_down_max(MinMaxHeap* mmh, int m) {
             if (mval < mmh->dat[r]) {
                 mval = mmh->dat[r];
                 m = r;
-                g = 0;
+                p = -1;
             }
             int rl = MMH_LEFT(mmh, r);
             if (rl >= 0 && rl < mmh->pos) {
                 if (mval < mmh->dat[rl]) {
                     mval = mmh->dat[rl];
                     m = rl;
-                    g = 1;
+                    p = r;
                 }
             }
             int rr = MMH_RIGHT(mmh, r);
@@ -233,28 +227,22 @@ static void mmh_push_down_max(MinMaxHeap* mmh, int m) {
                 if (mval < mmh->dat[rr]) {
                     mval = mmh->dat[rr];
                     m = rr;
-                    g = 1;
+                    p = r;
                 }
             }
         }
         if (m < 0) {
             break;
         }
-        if (g) {
-            // printf("pushdown_max node %d=%d max %d=%d (grandchild)\n", i, mmh->dat[i], m, mmh->dat[m]);
+        if (p >= 0) {
             if (mmh->dat[m] > mmh->dat[i]) {
                 MMH_SWAP(mmh, m, i);
-                // printf("  swap %d %d\n", m, i);
-                int p = MMH_PARENT(mmh, m);
                 if (mmh->dat[m] < mmh->dat[p]) {
                     MMH_SWAP(mmh, m, p);
-                    // printf("  swap parent %d %d\n", m, p);
                 }
             }
         } else if (mmh->dat[m] > mmh->dat[i]) {
-            // printf("pushdown_max node %d=%d max %d=%d\n", i, mmh->dat[i], m, mmh->dat[m]);
             MMH_SWAP(mmh, m, i);
-            // printf("  swap %d %d\n", m, i);
         } else {
             break;
         }
