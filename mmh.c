@@ -7,25 +7,45 @@
 #include <string.h>
 #include "mmh.h"
 
-#define MMH_LFT(mmh, p) (2 * (p) + 1)
-#define MMH_RGT(mmh, p) (2 * (p) + 2)
-#define MMH_PAR(mmh, p) (((p) - 1) / 2)
+#define MMH_LFT(mmh, pos) (2 * (pos) + 1)
+#define MMH_RGT(mmh, pos) (2 * (pos) + 2)
+#define MMH_PAR(mmh, pos) (((pos) - 1) / 2)
 
-#define MMH_SWP(mmh, a, b) \
+#define MMH_SWP(mmh, p0, p1) \
     do { \
-        mmh_t t = mmh->dat[a]; \
-        mmh->dat[a] = mmh->dat[b]; \
-        mmh->dat[b] = t; \
-    } while (0)
+        mmh_t t = mmh->dat[p0]; \
+        mmh->dat[p0] = mmh->dat[p1]; \
+        mmh->dat[p1] = t; \
+    } while (false)
+
+#define MMH_CHECK_MIN(mmh, fnd, val, pos, min, par, pav) \
+    do { \
+        if (!fnd || val > mmh->dat[pos]) { \
+            val = mmh->dat[pos]; \
+            fnd = true; \
+            min = pos; \
+            par = pav; \
+        } \
+    } while (false)
+
+#define MMH_CHECK_MAX(mmh, fnd, val, pos, max, par, pav) \
+    do { \
+        if (!fnd || val < mmh->dat[pos]) { \
+            val = mmh->dat[pos]; \
+            fnd = true; \
+            max = pos; \
+            par = pav; \
+        } \
+    } while (false)
 
 #if 0
 static void show(const char* msg, MinMaxHeap* mmh);
 #endif
 
-static bool mmh_is_min_level(MinMaxHeap* mmh, unsigned int p);
-static void mmh_push_down(MinMaxHeap* mmh, unsigned int i);
-static void mmh_push_down_min(MinMaxHeap* mmh, unsigned int m);
-static void mmh_push_down_max(MinMaxHeap* mmh, unsigned int m);
+static bool mmh_is_min_level(MinMaxHeap* mmh, unsigned int pos);
+static void mmh_push_down(MinMaxHeap* mmh, unsigned int pos);
+static void mmh_push_down_min(MinMaxHeap* mmh, unsigned int pos);
+static void mmh_push_down_max(MinMaxHeap* mmh, unsigned int pos);
 static void mmh_grow(MinMaxHeap* mmh, unsigned int cap);
 
 MinMaxHeap* mmh_create(void) {
@@ -63,8 +83,8 @@ void mmh_heapify(MinMaxHeap* mmh) {
     if (mmh->pos <= 0) {
         return;
     }
-    unsigned int m = mmh->pos / 2;
-    for (int j = m - 1; j >= 0; --j) {
+    unsigned int mid = mmh->pos / 2;
+    for (int j = mid - 1; j >= 0; --j) {
         mmh_push_down(mmh, j);
         // show("AFTER push_down", mmh);
     }
@@ -75,8 +95,8 @@ mmh_t mmh_min(MinMaxHeap* mmh) {
         return 0;
     }
 
-    mmh_t m = mmh->dat[0];
-    return m;
+    mmh_t ret = mmh->dat[0];
+    return ret;
 }
 
 mmh_t mmh_max(MinMaxHeap* mmh) {
@@ -84,196 +104,136 @@ mmh_t mmh_max(MinMaxHeap* mmh) {
         return 0;
     }
 
-    mmh_t m = mmh->dat[0];
-    if (mmh->pos > 1 && m < mmh->dat[1]) {
-        m = mmh->dat[1];
+    mmh_t ret = mmh->dat[0];
+    if (mmh->pos > 1 && ret < mmh->dat[1]) {
+        ret = mmh->dat[1];
     }
-    if (mmh->pos > 2 && m < mmh->dat[2]) {
-        m = mmh->dat[2];
+    if (mmh->pos > 2 && ret < mmh->dat[2]) {
+        ret = mmh->dat[2];
     }
-    return m;
+    return ret;
 }
 
-static bool mmh_is_min_level(MinMaxHeap* mmh, unsigned int p) {
+static bool mmh_is_min_level(MinMaxHeap* mmh, unsigned int pos) {
     (void) mmh;
-    unsigned int l = p + 1;
-    if (l < 0x0001) return false;
-    if (l < 0x0002) return true;
-    if (l < 0x0004) return false;
-    if (l < 0x0008) return true;
-    if (l < 0x0010) return false;
-    if (l < 0x0020) return true;
-    if (l < 0x0040) return false;
-    if (l < 0x0080) return true;
-    if (l < 0x0100) return false;
-    if (l < 0x0200) return true;
-    if (l < 0x0400) return false;
-    if (l < 0x0800) return true;
-    if (l < 0x1000) return false;
-    if (l < 0x2000) return true;
-    if (l < 0x4000) return false;
-    if (l < 0x8000) return true;
+    unsigned int chk = pos + 1;
+    if (chk < 0x0001) return false;
+    if (chk < 0x0002) return true;
+    if (chk < 0x0004) return false;
+    if (chk < 0x0008) return true;
+    if (chk < 0x0010) return false;
+    if (chk < 0x0020) return true;
+    if (chk < 0x0040) return false;
+    if (chk < 0x0080) return true;
+    if (chk < 0x0100) return false;
+    if (chk < 0x0200) return true;
+    if (chk < 0x0400) return false;
+    if (chk < 0x0800) return true;
+    if (chk < 0x1000) return false;
+    if (chk < 0x2000) return true;
+    if (chk < 0x4000) return false;
+    if (chk < 0x8000) return true;
     return false;
 }
 
-static void mmh_push_down(MinMaxHeap* mmh, unsigned int i) {
-    if (mmh_is_min_level(mmh, i)) {
-        mmh_push_down_min(mmh, i);
+static void mmh_push_down(MinMaxHeap* mmh, unsigned int pos) {
+    if (mmh_is_min_level(mmh, pos)) {
+        mmh_push_down_min(mmh, pos);
     } else {
-        mmh_push_down_max(mmh, i);
+        mmh_push_down_max(mmh, pos);
     }
 }
 
-static void mmh_push_down_min(MinMaxHeap* mmh, unsigned int m) {
-    while (1) {
-        unsigned int i = m;
-        unsigned int p = UINT32_MAX;
+static void mmh_push_down_min(MinMaxHeap* mmh, unsigned int pos) {
+    while (true) {
+        unsigned int old = pos;
+        unsigned int par = UINT32_MAX;
         bool found = false;
         mmh_t mval = 0;
-        unsigned int l = MMH_LFT(mmh, i);
+        unsigned int l = MMH_LFT(mmh, old);
         if (l < mmh->pos) {
-            if (!found || mval > mmh->dat[l]) {
-                mval = mmh->dat[l];
-                found = true;
-                m = l;
-                p = UINT32_MAX;
-            }
+            MMH_CHECK_MIN(mmh, found, mval, l, pos, par, UINT32_MAX);
             unsigned int ll = MMH_LFT(mmh, l);
             if (ll < mmh->pos) {
-                if (!found || mval > mmh->dat[ll]) {
-                    mval = mmh->dat[ll];
-                    found = true;
-                    m = ll;
-                    p = l;
-                }
+                MMH_CHECK_MIN(mmh, found, mval, ll, pos, par, l);
             }
             unsigned int lr = MMH_RGT(mmh, l);
             if (lr < mmh->pos) {
-                if (!found || mval > mmh->dat[lr]) {
-                    mval = mmh->dat[lr];
-                    found = true;
-                    m = lr;
-                    p = l;
-                }
+                MMH_CHECK_MIN(mmh, found, mval, lr, pos, par, l);
             }
         }
-        unsigned int r = MMH_RGT(mmh, i);
+        unsigned int r = MMH_RGT(mmh, old);
         if (r < mmh->pos) {
-            if (!found || mval > mmh->dat[r]) {
-                mval = mmh->dat[r];
-                found = true;
-                m = r;
-                p = UINT32_MAX;
-            }
+            MMH_CHECK_MIN(mmh, found, mval, r, pos, par, UINT32_MAX);
             unsigned int rl = MMH_LFT(mmh, r);
             if (rl < mmh->pos) {
-                if (!found || mval > mmh->dat[rl]) {
-                    mval = mmh->dat[rl];
-                    found = true;
-                    m = rl;
-                    p = r;
-                }
+                MMH_CHECK_MIN(mmh, found, mval, rl, pos, par, r);
             }
             unsigned int rr = MMH_RGT(mmh, r);
             if (rr < mmh->pos) {
-                if (!found || mval > mmh->dat[rr]) {
-                    mval = mmh->dat[rr];
-                    found = true;
-                    m = rr;
-                    p = r;
-                }
+                MMH_CHECK_MIN(mmh, found, mval, rr, pos, par, r);
             }
         }
         if (!found) {
             break;
         }
-        if (p != UINT32_MAX) {
-            if (mmh->dat[m] < mmh->dat[i]) {
-                MMH_SWP(mmh, m, i);
-                if (mmh->dat[m] > mmh->dat[p]) {
-                    MMH_SWP(mmh, m, p);
+        if (par != UINT32_MAX) {
+            if (mmh->dat[pos] < mmh->dat[old]) {
+                MMH_SWP(mmh, pos, old);
+                if (mmh->dat[pos] > mmh->dat[par]) {
+                    MMH_SWP(mmh, pos, par);
                 }
             }
-        } else if (mmh->dat[m] < mmh->dat[i]) {
-            MMH_SWP(mmh, m, i);
+        } else if (mmh->dat[pos] < mmh->dat[old]) {
+            MMH_SWP(mmh, pos, old);
         } else {
             break;
         }
     }
 }
 
-static void mmh_push_down_max(MinMaxHeap* mmh, unsigned int m) {
-    while (1) {
-        unsigned int i = m;
-        unsigned int p = UINT32_MAX;
+static void mmh_push_down_max(MinMaxHeap* mmh, unsigned int pos) {
+    while (true) {
+        unsigned int old = pos;
+        unsigned int par = UINT32_MAX;
         bool found = false;
         mmh_t mval = INT32_MIN;
-        unsigned int l = MMH_LFT(mmh, i);
+        unsigned int l = MMH_LFT(mmh, old);
         if (l < mmh->pos) {
-            if (!found || mval < mmh->dat[l]) {
-                mval = mmh->dat[l];
-                found = true;
-                m = l;
-                p = -1;
-            }
+            MMH_CHECK_MAX(mmh, found, mval, l, pos, par, UINT32_MAX);
             unsigned int ll = MMH_LFT(mmh, l);
             if (ll < mmh->pos) {
-                if (!found || mval < mmh->dat[ll]) {
-                    mval = mmh->dat[ll];
-                found = true;
-                    m = ll;
-                    p = l;
-                }
+                MMH_CHECK_MAX(mmh, found, mval, ll, pos, par, l);
             }
             unsigned int lr = MMH_RGT(mmh, l);
             if (lr < mmh->pos) {
-                if (!found || mval < mmh->dat[lr]) {
-                    mval = mmh->dat[lr];
-                found = true;
-                    m = lr;
-                    p = l;
-                }
+                MMH_CHECK_MAX(mmh, found, mval, lr, pos, par, l);
             }
         }
-        unsigned int r = MMH_RGT(mmh, i);
+        unsigned int r = MMH_RGT(mmh, old);
         if (r < mmh->pos) {
-            if (!found || mval < mmh->dat[r]) {
-                mval = mmh->dat[r];
-                found = true;
-                m = r;
-                p = -1;
-            }
+            MMH_CHECK_MAX(mmh, found, mval, r, pos, par, UINT32_MAX);
             unsigned int rl = MMH_LFT(mmh, r);
             if (rl < mmh->pos) {
-                if (!found || mval < mmh->dat[rl]) {
-                    mval = mmh->dat[rl];
-                found = true;
-                    m = rl;
-                    p = r;
-                }
+                MMH_CHECK_MAX(mmh, found, mval, rl, pos, par, r);
             }
             unsigned int rr = MMH_RGT(mmh, r);
             if (rr < mmh->pos) {
-                if (!found || mval < mmh->dat[rr]) {
-                    mval = mmh->dat[rr];
-                found = true;
-                    m = rr;
-                    p = r;
-                }
+                MMH_CHECK_MAX(mmh, found, mval, rr, pos, par, r);
             }
         }
         if (!found) {
             break;
         }
-        if (p != UINT32_MAX) {
-            if (mmh->dat[m] > mmh->dat[i]) {
-                MMH_SWP(mmh, m, i);
-                if (mmh->dat[m] < mmh->dat[p]) {
-                    MMH_SWP(mmh, m, p);
+        if (par != UINT32_MAX) {
+            if (mmh->dat[pos] > mmh->dat[old]) {
+                MMH_SWP(mmh, pos, old);
+                if (mmh->dat[pos] < mmh->dat[par]) {
+                    MMH_SWP(mmh, pos, par);
                 }
             }
-        } else if (mmh->dat[m] > mmh->dat[i]) {
-            MMH_SWP(mmh, m, i);
+        } else if (mmh->dat[pos] > mmh->dat[old]) {
+            MMH_SWP(mmh, pos, old);
         } else {
             break;
         }
