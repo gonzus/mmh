@@ -1,7 +1,6 @@
 #include <assert.h>
 #include <math.h>
 #include <stdio.h>
-#include <stdbool.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
@@ -42,45 +41,100 @@
 static void show(const char* msg, MinMaxHeap* mmh);
 #endif
 
+static unsigned int mmh_find_max_pos(MinMaxHeap* mmh);
+static unsigned int mmh_remove_pos(MinMaxHeap* mmh, unsigned int pos);
+
 static bool mmh_is_min_level(MinMaxHeap* mmh, unsigned int pos);
+static void mmh_grow(MinMaxHeap* mmh, unsigned int cap);
+
 static void mmh_push_down(MinMaxHeap* mmh, unsigned int pos);
 static void mmh_push_down_min(MinMaxHeap* mmh, unsigned int pos);
 static void mmh_push_down_max(MinMaxHeap* mmh, unsigned int pos);
-static void mmh_grow(MinMaxHeap* mmh, unsigned int cap);
+
+static void mmh_push_up(MinMaxHeap* mmh, unsigned int pos);
+static void mmh_push_up_min(MinMaxHeap* mmh, unsigned int pos);
+static void mmh_push_up_max(MinMaxHeap* mmh, unsigned int pos);
 
 MinMaxHeap* mmh_create(void) {
     MinMaxHeap* mmh = (MinMaxHeap*) malloc(sizeof(MinMaxHeap));
     memset(mmh, 0, sizeof(MinMaxHeap));
+    assert(mmh);
     return mmh;
 }
 
 MinMaxHeap* mmh_create_capacity(unsigned int capacity) {
     MinMaxHeap* mmh = mmh_create();
     mmh_grow(mmh, capacity);
+    assert(mmh);
     return mmh;
 }
 
 void mmh_destroy(MinMaxHeap* mmh) {
     free((void*) mmh->dat);
     mmh->dat = 0;
+    assert(!mmh->dat);
     free((void*) mmh);
     mmh = 0;
+    assert(!mmh);
+}
+
+unsigned int mmh_size(MinMaxHeap* mmh) {
+    assert(mmh);
+    return mmh->pos;
+}
+
+unsigned int mmh_capacity(MinMaxHeap* mmh) {
+    assert(mmh);
+    return mmh->cap;
+}
+
+bool mmh_is_empty(MinMaxHeap* mmh) {
+    assert(mmh);
+    return mmh->pos <= 0;
 }
 
 unsigned int mmh_add(MinMaxHeap* mmh, mmh_t value) {
+    assert(mmh);
     if (mmh->pos >= mmh->cap) {
         mmh_grow(mmh, mmh->cap > 0 ? 2 * mmh->cap : 16);
     }
-    mmh->dat[mmh->pos] = value;
-    return ++mmh->pos;
+    mmh->dat[mmh->pos++] = value;
+    return mmh->pos;
+}
+
+unsigned int mmh_insert(MinMaxHeap* mmh, mmh_t value) {
+    assert(mmh);
+    mmh_add(mmh, value);
+    mmh_push_up(mmh, mmh->pos - 1);
+    return mmh->pos;
+}
+
+unsigned int mmh_remove_min(MinMaxHeap* mmh) {
+    assert(mmh);
+    if (mmh_is_empty(mmh)) {
+        return mmh->pos;
+    }
+    unsigned int pos = 0;
+    return mmh_remove_pos(mmh, pos);
+}
+
+unsigned int mmh_remove_max(MinMaxHeap* mmh) {
+    assert(mmh);
+    if (mmh_is_empty(mmh)) {
+        return mmh->pos;
+    }
+    unsigned int pos = mmh_find_max_pos(mmh);
+    return mmh_remove_pos(mmh, pos);
 }
 
 void mmh_clear(MinMaxHeap* mmh) {
+    assert(mmh);
     mmh->pos = 0;
 }
 
 void mmh_heapify(MinMaxHeap* mmh) {
-    if (mmh->pos <= 0) {
+    assert(mmh);
+    if (mmh_is_empty(mmh)) {
         return;
     }
     unsigned int mid = mmh->pos / 2;
@@ -91,27 +145,47 @@ void mmh_heapify(MinMaxHeap* mmh) {
 }
 
 mmh_t mmh_min(MinMaxHeap* mmh) {
-    if (mmh->pos <= 0) {
+    assert(mmh);
+    if (mmh_is_empty(mmh)) {
         return 0;
     }
 
-    mmh_t ret = mmh->dat[0];
-    return ret;
+    unsigned int pos = 0;
+    return mmh->dat[pos];
 }
 
 mmh_t mmh_max(MinMaxHeap* mmh) {
-    if (mmh->pos <= 0) {
+    assert(mmh);
+    if (mmh_is_empty(mmh)) {
         return 0;
     }
 
-    mmh_t ret = mmh->dat[0];
-    if (mmh->pos > 1 && ret < mmh->dat[1]) {
-        ret = mmh->dat[1];
+    unsigned int pos = mmh_find_max_pos(mmh);
+    return mmh->dat[pos];
+}
+
+static unsigned int mmh_find_max_pos(MinMaxHeap* mmh) {
+    assert(mmh);
+    assert(mmh->pos > 0);
+    unsigned int pos = 0;
+    mmh_t max = mmh->dat[pos];
+    if (mmh->pos > 1 && max < mmh->dat[1]) {
+        pos = 1;
+        max = mmh->dat[pos];
     }
-    if (mmh->pos > 2 && ret < mmh->dat[2]) {
-        ret = mmh->dat[2];
+    if (mmh->pos > 2 && max < mmh->dat[2]) {
+        pos = 2;
+        max = mmh->dat[pos];
     }
-    return ret;
+    return pos;
+}
+
+static unsigned int mmh_remove_pos(MinMaxHeap* mmh, unsigned int pos) {
+    assert(mmh);
+    assert(mmh->pos > 0);
+    mmh->dat[pos] = mmh->dat[--mmh->pos];
+    mmh_push_down(mmh, pos);
+    return mmh->pos;
 }
 
 static bool mmh_is_min_level(MinMaxHeap* mmh, unsigned int pos) {
@@ -137,6 +211,7 @@ static bool mmh_is_min_level(MinMaxHeap* mmh, unsigned int pos) {
 }
 
 static void mmh_push_down(MinMaxHeap* mmh, unsigned int pos) {
+    assert(mmh);
     if (mmh_is_min_level(mmh, pos)) {
         mmh_push_down_min(mmh, pos);
     } else {
@@ -145,6 +220,7 @@ static void mmh_push_down(MinMaxHeap* mmh, unsigned int pos) {
 }
 
 static void mmh_push_down_min(MinMaxHeap* mmh, unsigned int pos) {
+    assert(mmh);
     while (true) {
         unsigned int old = pos;
         unsigned int par = UINT32_MAX;
@@ -193,6 +269,7 @@ static void mmh_push_down_min(MinMaxHeap* mmh, unsigned int pos) {
 }
 
 static void mmh_push_down_max(MinMaxHeap* mmh, unsigned int pos) {
+    assert(mmh);
     while (true) {
         unsigned int old = pos;
         unsigned int par = UINT32_MAX;
@@ -240,7 +317,69 @@ static void mmh_push_down_max(MinMaxHeap* mmh, unsigned int pos) {
     }
 }
 
+static void mmh_push_up(MinMaxHeap* mmh, unsigned int pos) {
+    assert(mmh);
+    if (pos == 0) {
+        return;
+    }
+    unsigned int par = MMH_PAR(mmh, pos);
+    if (mmh_is_min_level(mmh, pos)) {
+        if (mmh->dat[pos] > mmh->dat[par]) {
+            MMH_SWP(mmh, pos, par);
+            mmh_push_up_max(mmh, par);
+        } else {
+            mmh_push_up_min(mmh, pos);
+        }
+    } else {
+        if (mmh->dat[pos] < mmh->dat[par]) {
+            MMH_SWP(mmh, pos, par);
+            mmh_push_up_min(mmh, par);
+        } else {
+            mmh_push_up_max(mmh, pos);
+        }
+    }
+}
+
+static void mmh_push_up_min(MinMaxHeap* mmh, unsigned int pos) {
+    assert(mmh);
+    while (true) {
+        if (pos == 0) {
+            break;
+        }
+        unsigned int par = MMH_PAR(mmh, pos);
+        if (par == 0) {
+            break;
+        }
+        unsigned int gpr = MMH_PAR(mmh, par);
+        if (mmh->dat[pos] >= mmh->dat[gpr]) {
+            break;
+        }
+        MMH_SWP(mmh, pos, gpr);
+        pos = gpr;
+    }
+}
+
+static void mmh_push_up_max(MinMaxHeap* mmh, unsigned int pos) {
+    assert(mmh);
+    while (true) {
+        if (pos == 0) {
+            break;
+        }
+        unsigned int par = MMH_PAR(mmh, pos);
+        if (par == 0) {
+            break;
+        }
+        unsigned int gpr = MMH_PAR(mmh, par);
+        if (mmh->dat[pos] <= mmh->dat[gpr]) {
+            break;
+        }
+        MMH_SWP(mmh, pos, gpr);
+        pos = gpr;
+    }
+}
+
 static void mmh_grow(MinMaxHeap* mmh, unsigned int cap) {
+    assert(mmh);
     // printf("GROW %p %u to %u\n", (void*) mmh->dat, mmh->cap, cap);
     mmh_t* dat = realloc(mmh->dat, cap * sizeof(mmh_t));
     mmh->dat = dat;

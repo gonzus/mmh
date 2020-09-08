@@ -7,6 +7,7 @@
 static void test_min_max(int top) {
     // MinMaxHeap* mmh = mmh_create_capacity(top);
     MinMaxHeap* mmh = mmh_create();
+    int heapify = 1;
     long long i = INT32_MAX;
     long long a = INT32_MIN;
     for (int j = 0; j < top; ++j) {
@@ -18,12 +19,16 @@ static void test_min_max(int top) {
         if (a < rr) {
             a = rr;
         }
-        mmh_add(mmh, r);
+        if (heapify) {
+            mmh_add(mmh, r);
+        } else {
+            mmh_insert(mmh, r);
+        }
     }
 
-    // show("BEFORE heapify", h, top);
-    mmh_heapify(mmh);
-    // show("AFTER heapify", h, top);
+    if (heapify) {
+        mmh_heapify(mmh);
+    }
 
     long long hmin = mmh_min(mmh);
     long long hmax = mmh_max(mmh);
