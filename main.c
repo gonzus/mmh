@@ -5,28 +5,32 @@
 #include "mmh.h"
 
 static void test_min_max(int top) {
-    int* h = (int*) malloc(top*sizeof(int));
+    MinMaxHeap* mmh = mmh_create(top);
     int i = INT32_MAX;
     int a = INT32_MIN;
     for (int j = 0; j < top; ++j) {
-        h[j] = rand();
-        if (i > h[j]) {
-            i = h[j];
+        int r = rand();
+        if (i > r) {
+            i = r;
         }
-        if (a < h[j]) {
-            a = h[j];
+        if (a < r) {
+            a = r;
         }
+        mmh->dat[j] = r;
     }
+    mmh->pos = top;
+
     // show("BEFORE heapify", h, top);
-    mmh_heapify(h, top);
+    mmh_heapify(mmh);
     // show("AFTER heapify", h, top);
 
-    int hmin = mmh_min(h, top);
-    int hmax = mmh_max(h, top);
+    int hmin = mmh_min(mmh);
+    int hmax = mmh_max(mmh);
     printf("min %2s %d %d\n", hmin == i ? "OK" : "XX", hmin, i);
     printf("max %2s %d %d\n", hmax == a ? "OK" : "XX", hmax, a);
-    free((void*) h);
+    mmh_destroy(mmh);
 }
+
 
 int main(int argc, char* argv[]) {
     (void) argc;
