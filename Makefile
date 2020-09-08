@@ -14,6 +14,7 @@ LIBS += -lm
 
 C_SRC = \
 	mmh.c \
+	main.c \
 
 C_EXE = mmh
 
