@@ -7,69 +7,26 @@
 #include <string.h>
 #include "mmh.h"
 
-static bool mmh_is_min_level(MinMaxHeap* mmh, unsigned int p) {
-    (void) mmh;
-    unsigned int l = p + 1;
-    if (l < 0x0001) return false;
-    if (l < 0x0002) return true;
-    if (l < 0x0004) return false;
-    if (l < 0x0008) return true;
-    if (l < 0x0010) return false;
-    if (l < 0x0020) return true;
-    if (l < 0x0040) return false;
-    if (l < 0x0080) return true;
-    if (l < 0x0100) return false;
-    if (l < 0x0200) return true;
-    if (l < 0x0400) return false;
-    if (l < 0x0800) return true;
-    if (l < 0x1000) return false;
-    if (l < 0x2000) return true;
-    if (l < 0x4000) return false;
-    if (l < 0x8000) return true;
-    return false;
-}
+#define MMH_LFT(mmh, p) (2 * (p) + 1)
+#define MMH_RGT(mmh, p) (2 * (p) + 2)
+#define MMH_PAR(mmh, p) (((p) - 1) / 2)
 
-#define MMH_ROOT(mmh) \
-    (0)
-
-#define MMH_LEFT(mmh, p) \
-    (2 * (p) + 1)
-
-#define MMH_RIGHT(mmh, p) \
-    (2 * (p) + 2)
-
-#define MMH_PARENT(mmh, p) \
-    (((p) - 1) / 2)
-
-#define MMH_SWAP(mmh, a, b) \
+#define MMH_SWP(mmh, a, b) \
     do { \
         mmh_t t = mmh->dat[a]; \
         mmh->dat[a] = mmh->dat[b]; \
         mmh->dat[b] = t; \
     } while (0)
 
+#if 0
+static void show(const char* msg, MinMaxHeap* mmh);
+#endif
+
+static bool mmh_is_min_level(MinMaxHeap* mmh, unsigned int p);
 static void mmh_push_down(MinMaxHeap* mmh, unsigned int i);
 static void mmh_push_down_min(MinMaxHeap* mmh, unsigned int m);
 static void mmh_push_down_max(MinMaxHeap* mmh, unsigned int m);
-
-#if 0
-static void show(const char* msg, MinMaxHeap* mmh) {
-    if (msg && msg[0]) {
-        printf("%s\n", msg);
-    }
-    for (unsigned int j = 0; j < mmh->pos; ++j) {
-        printf("h[%2u] = %d\n", j, mmh->dat[j]);
-    }
-    printf("==========\n");
-}
-#endif
-
-static void mmh_grow(MinMaxHeap* mmh, unsigned int cap) {
-    // printf("GROW %p %u to %u\n", (void*) mmh->dat, mmh->cap, cap);
-    mmh_t* dat = realloc(mmh->dat, cap * sizeof(mmh_t));
-    mmh->dat = dat;
-    mmh->cap = cap;
-}
+static void mmh_grow(MinMaxHeap* mmh, unsigned int cap);
 
 MinMaxHeap* mmh_create(void) {
     MinMaxHeap* mmh = (MinMaxHeap*) malloc(sizeof(MinMaxHeap));
@@ -96,6 +53,10 @@ unsigned int mmh_add(MinMaxHeap* mmh, mmh_t value) {
     }
     mmh->dat[mmh->pos] = value;
     return ++mmh->pos;
+}
+
+void mmh_clear(MinMaxHeap* mmh) {
+    mmh->pos = 0;
 }
 
 void mmh_heapify(MinMaxHeap* mmh) {
@@ -133,6 +94,28 @@ mmh_t mmh_max(MinMaxHeap* mmh) {
     return m;
 }
 
+static bool mmh_is_min_level(MinMaxHeap* mmh, unsigned int p) {
+    (void) mmh;
+    unsigned int l = p + 1;
+    if (l < 0x0001) return false;
+    if (l < 0x0002) return true;
+    if (l < 0x0004) return false;
+    if (l < 0x0008) return true;
+    if (l < 0x0010) return false;
+    if (l < 0x0020) return true;
+    if (l < 0x0040) return false;
+    if (l < 0x0080) return true;
+    if (l < 0x0100) return false;
+    if (l < 0x0200) return true;
+    if (l < 0x0400) return false;
+    if (l < 0x0800) return true;
+    if (l < 0x1000) return false;
+    if (l < 0x2000) return true;
+    if (l < 0x4000) return false;
+    if (l < 0x8000) return true;
+    return false;
+}
+
 static void mmh_push_down(MinMaxHeap* mmh, unsigned int i) {
     if (mmh_is_min_level(mmh, i)) {
         mmh_push_down_min(mmh, i);
@@ -147,7 +130,7 @@ static void mmh_push_down_min(MinMaxHeap* mmh, unsigned int m) {
         unsigned int p = UINT32_MAX;
         bool found = false;
         mmh_t mval = 0;
-        unsigned int l = MMH_LEFT(mmh, i);
+        unsigned int l = MMH_LFT(mmh, i);
         if (l < mmh->pos) {
             if (!found || mval > mmh->dat[l]) {
                 mval = mmh->dat[l];
@@ -155,7 +138,7 @@ static void mmh_push_down_min(MinMaxHeap* mmh, unsigned int m) {
                 m = l;
                 p = UINT32_MAX;
             }
-            unsigned int ll = MMH_LEFT(mmh, l);
+            unsigned int ll = MMH_LFT(mmh, l);
             if (ll < mmh->pos) {
                 if (!found || mval > mmh->dat[ll]) {
                     mval = mmh->dat[ll];
@@ -164,7 +147,7 @@ static void mmh_push_down_min(MinMaxHeap* mmh, unsigned int m) {
                     p = l;
                 }
             }
-            unsigned int lr = MMH_RIGHT(mmh, l);
+            unsigned int lr = MMH_RGT(mmh, l);
             if (lr < mmh->pos) {
                 if (!found || mval > mmh->dat[lr]) {
                     mval = mmh->dat[lr];
@@ -174,7 +157,7 @@ static void mmh_push_down_min(MinMaxHeap* mmh, unsigned int m) {
                 }
             }
         }
-        unsigned int r = MMH_RIGHT(mmh, i);
+        unsigned int r = MMH_RGT(mmh, i);
         if (r < mmh->pos) {
             if (!found || mval > mmh->dat[r]) {
                 mval = mmh->dat[r];
@@ -182,7 +165,7 @@ static void mmh_push_down_min(MinMaxHeap* mmh, unsigned int m) {
                 m = r;
                 p = UINT32_MAX;
             }
-            unsigned int rl = MMH_LEFT(mmh, r);
+            unsigned int rl = MMH_LFT(mmh, r);
             if (rl < mmh->pos) {
                 if (!found || mval > mmh->dat[rl]) {
                     mval = mmh->dat[rl];
@@ -191,7 +174,7 @@ static void mmh_push_down_min(MinMaxHeap* mmh, unsigned int m) {
                     p = r;
                 }
             }
-            unsigned int rr = MMH_RIGHT(mmh, r);
+            unsigned int rr = MMH_RGT(mmh, r);
             if (rr < mmh->pos) {
                 if (!found || mval > mmh->dat[rr]) {
                     mval = mmh->dat[rr];
@@ -206,13 +189,13 @@ static void mmh_push_down_min(MinMaxHeap* mmh, unsigned int m) {
         }
         if (p != UINT32_MAX) {
             if (mmh->dat[m] < mmh->dat[i]) {
-                MMH_SWAP(mmh, m, i);
+                MMH_SWP(mmh, m, i);
                 if (mmh->dat[m] > mmh->dat[p]) {
-                    MMH_SWAP(mmh, m, p);
+                    MMH_SWP(mmh, m, p);
                 }
             }
         } else if (mmh->dat[m] < mmh->dat[i]) {
-            MMH_SWAP(mmh, m, i);
+            MMH_SWP(mmh, m, i);
         } else {
             break;
         }
@@ -225,7 +208,7 @@ static void mmh_push_down_max(MinMaxHeap* mmh, unsigned int m) {
         unsigned int p = UINT32_MAX;
         bool found = false;
         mmh_t mval = INT32_MIN;
-        unsigned int l = MMH_LEFT(mmh, i);
+        unsigned int l = MMH_LFT(mmh, i);
         if (l < mmh->pos) {
             if (!found || mval < mmh->dat[l]) {
                 mval = mmh->dat[l];
@@ -233,7 +216,7 @@ static void mmh_push_down_max(MinMaxHeap* mmh, unsigned int m) {
                 m = l;
                 p = -1;
             }
-            unsigned int ll = MMH_LEFT(mmh, l);
+            unsigned int ll = MMH_LFT(mmh, l);
             if (ll < mmh->pos) {
                 if (!found || mval < mmh->dat[ll]) {
                     mval = mmh->dat[ll];
@@ -242,7 +225,7 @@ static void mmh_push_down_max(MinMaxHeap* mmh, unsigned int m) {
                     p = l;
                 }
             }
-            unsigned int lr = MMH_RIGHT(mmh, l);
+            unsigned int lr = MMH_RGT(mmh, l);
             if (lr < mmh->pos) {
                 if (!found || mval < mmh->dat[lr]) {
                     mval = mmh->dat[lr];
@@ -252,7 +235,7 @@ static void mmh_push_down_max(MinMaxHeap* mmh, unsigned int m) {
                 }
             }
         }
-        unsigned int r = MMH_RIGHT(mmh, i);
+        unsigned int r = MMH_RGT(mmh, i);
         if (r < mmh->pos) {
             if (!found || mval < mmh->dat[r]) {
                 mval = mmh->dat[r];
@@ -260,7 +243,7 @@ static void mmh_push_down_max(MinMaxHeap* mmh, unsigned int m) {
                 m = r;
                 p = -1;
             }
-            unsigned int rl = MMH_LEFT(mmh, r);
+            unsigned int rl = MMH_LFT(mmh, r);
             if (rl < mmh->pos) {
                 if (!found || mval < mmh->dat[rl]) {
                     mval = mmh->dat[rl];
@@ -269,7 +252,7 @@ static void mmh_push_down_max(MinMaxHeap* mmh, unsigned int m) {
                     p = r;
                 }
             }
-            unsigned int rr = MMH_RIGHT(mmh, r);
+            unsigned int rr = MMH_RGT(mmh, r);
             if (rr < mmh->pos) {
                 if (!found || mval < mmh->dat[rr]) {
                     mval = mmh->dat[rr];
@@ -284,15 +267,34 @@ static void mmh_push_down_max(MinMaxHeap* mmh, unsigned int m) {
         }
         if (p != UINT32_MAX) {
             if (mmh->dat[m] > mmh->dat[i]) {
-                MMH_SWAP(mmh, m, i);
+                MMH_SWP(mmh, m, i);
                 if (mmh->dat[m] < mmh->dat[p]) {
-                    MMH_SWAP(mmh, m, p);
+                    MMH_SWP(mmh, m, p);
                 }
             }
         } else if (mmh->dat[m] > mmh->dat[i]) {
-            MMH_SWAP(mmh, m, i);
+            MMH_SWP(mmh, m, i);
         } else {
             break;
         }
     }
 }
+
+static void mmh_grow(MinMaxHeap* mmh, unsigned int cap) {
+    // printf("GROW %p %u to %u\n", (void*) mmh->dat, mmh->cap, cap);
+    mmh_t* dat = realloc(mmh->dat, cap * sizeof(mmh_t));
+    mmh->dat = dat;
+    mmh->cap = cap;
+}
+
+#if 0
+static void show(const char* msg, MinMaxHeap* mmh) {
+    if (msg && msg[0]) {
+        printf("%s\n", msg);
+    }
+    for (unsigned int j = 0; j < mmh->pos; ++j) {
+        printf("h[%2u] = %d\n", j, mmh->dat[j]);
+    }
+    printf("==========\n");
+}
+#endif
