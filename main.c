@@ -5,7 +5,8 @@
 #include "mmh.h"
 
 static void test_min_max(int top) {
-    MinMaxHeap* mmh = mmh_create(top);
+    // MinMaxHeap* mmh = mmh_create_capacity(top);
+    MinMaxHeap* mmh = mmh_create();
     int i = INT32_MAX;
     int a = INT32_MIN;
     for (int j = 0; j < top; ++j) {
@@ -16,9 +17,8 @@ static void test_min_max(int top) {
         if (a < r) {
             a = r;
         }
-        mmh->dat[j] = r;
+        mmh_add(mmh, r);
     }
-    mmh->pos = top;
 
     // show("BEFORE heapify", h, top);
     mmh_heapify(mmh);

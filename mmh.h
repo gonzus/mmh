@@ -7,10 +7,13 @@ typedef struct MinMaxHeap {
     int* dat;
 } MinMaxHeap;
 
-MinMaxHeap* mmh_create(int capacity);
+MinMaxHeap* mmh_create(void);
+MinMaxHeap* mmh_create_capacity(int capacity);
 void mmh_destroy(MinMaxHeap* mmh);
 
+int mmh_add(MinMaxHeap* mmh, int value);
 void mmh_heapify(MinMaxHeap* mmh);
+
 int mmh_min(MinMaxHeap* mmh);
 int mmh_max(MinMaxHeap* mmh);
 

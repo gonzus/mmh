@@ -47,11 +47,22 @@ static void show(const char* msg, MinMaxHeap* mmh) {
 }
 #endif
 
-MinMaxHeap* mmh_create(int capacity) {
+static void mmh_grow(MinMaxHeap* mmh, int cap) {
+    // printf("GROW %p %d to %d\n", (void*) mmh->dat, mmh->cap, cap);
+    int* dat = realloc(mmh->dat, cap * sizeof(int));
+    mmh->dat = dat;
+    mmh->cap = cap;
+}
+
+MinMaxHeap* mmh_create(void) {
     MinMaxHeap* mmh = (MinMaxHeap*) malloc(sizeof(MinMaxHeap));
     memset(mmh, 0, sizeof(MinMaxHeap));
-    mmh->dat = (int*) malloc(capacity*sizeof(int));
-    mmh->cap = capacity;
+    return mmh;
+}
+
+MinMaxHeap* mmh_create_capacity(int capacity) {
+    MinMaxHeap* mmh = mmh_create();
+    mmh_grow(mmh, capacity);
     return mmh;
 }
 
@@ -60,6 +71,14 @@ void mmh_destroy(MinMaxHeap* mmh) {
     mmh->dat = 0;
     free((void*) mmh);
     mmh = 0;
+}
+
+int mmh_add(MinMaxHeap* mmh, int value) {
+    if (mmh->pos >= mmh->cap) {
+        mmh_grow(mmh, mmh->cap > 0 ? 2 * mmh->cap : 16);
+    }
+    mmh->dat[mmh->pos] = value;
+    return ++mmh->pos;
 }
 
 void mmh_heapify(MinMaxHeap* mmh) {
