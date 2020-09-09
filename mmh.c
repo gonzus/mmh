@@ -141,7 +141,7 @@ void mmh_heapify(MinMaxHeap* mmh) {
     if (mmh_is_empty(mmh)) {
         return;
     }
-    unsigned int mid = mmh->pos / 2;
+    int mid = mmh->pos / 2;
     for (int j = mid - 1; j >= 0; --j) {
         mmh_push_down(mmh, j);
         // show("AFTER push_down", mmh);
@@ -194,24 +194,14 @@ static unsigned int mmh_remove_pos(MinMaxHeap* mmh, unsigned int pos) {
 
 static bool mmh_is_min_level(MinMaxHeap* mmh, unsigned int pos) {
     (void) mmh;
-    unsigned int chk = pos + 1;
-    if (chk < 0x0001) return false;
-    if (chk < 0x0002) return true;
-    if (chk < 0x0004) return false;
-    if (chk < 0x0008) return true;
-    if (chk < 0x0010) return false;
-    if (chk < 0x0020) return true;
-    if (chk < 0x0040) return false;
-    if (chk < 0x0080) return true;
-    if (chk < 0x0100) return false;
-    if (chk < 0x0200) return true;
-    if (chk < 0x0400) return false;
-    if (chk < 0x0800) return true;
-    if (chk < 0x1000) return false;
-    if (chk < 0x2000) return true;
-    if (chk < 0x4000) return false;
-    if (chk < 0x8000) return true;
-    return false;
+    // we basically need to know the MSB in pos+1
+    pos += 1;
+    unsigned int c = 0;
+    while (pos > 0) {
+        ++c;
+        pos >>= 1;
+    }
+    return ((c&1) != 0);
 }
 
 static void mmh_push_down(MinMaxHeap* mmh, unsigned int pos) {
@@ -229,7 +219,7 @@ static void mmh_push_down_min(MinMaxHeap* mmh, unsigned int pos) {
         unsigned int old = pos;
         unsigned int par = UINT32_MAX;
         bool found = false;
-        mmh_t mval = 0;
+        mmh_t mval = INT32_MAX;
         unsigned int l = MMH_LFT(mmh, old);
         if (l < mmh->pos) {
             MMH_CHECK_MIN(mmh, found, mval, l, pos, par, UINT32_MAX);
