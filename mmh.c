@@ -6,10 +6,12 @@
 #include <string.h>
 #include "mmh.h"
 
+// left, right and parent indexes
 #define MMH_LFT(mmh, pos) (2 * (pos) + 1)
 #define MMH_RGT(mmh, pos) (2 * (pos) + 2)
 #define MMH_PAR(mmh, pos) (((pos) - 1) / 2)
 
+// swap the values stored in two indexes
 #define MMH_SWP(mmh, p0, p1) \
     do { \
         mmh_t t = mmh->dat[p0]; \
@@ -17,9 +19,10 @@
         mmh->dat[p1] = t; \
     } while (false)
 
+// helper to see if we found a new minimum
 #define MMH_CHECK_MIN(mmh, fnd, val, pos, min, par, pav) \
     do { \
-        if (!fnd || val > mmh->dat[pos]) { \
+        if ((!fnd) || (val > mmh->dat[pos])) { \
             val = mmh->dat[pos]; \
             fnd = true; \
             min = pos; \
@@ -27,9 +30,10 @@
         } \
     } while (false)
 
+// helper to see if we found a new maximum
 #define MMH_CHECK_MAX(mmh, fnd, val, pos, max, par, pav) \
     do { \
-        if (!fnd || val < mmh->dat[pos]) { \
+        if ((!fnd) || (val < mmh->dat[pos])) { \
             val = mmh->dat[pos]; \
             fnd = true; \
             max = pos; \
@@ -65,11 +69,11 @@ MinMaxHeap* mmh_create(void) {
 MinMaxHeap* mmh_create_capacity(unsigned int capacity) {
     MinMaxHeap* mmh = mmh_create();
     mmh_grow(mmh, capacity);
-    assert(mmh);
     return mmh;
 }
 
 void mmh_destroy(MinMaxHeap* mmh) {
+    assert(mmh);
     free((void*) mmh->dat);
     mmh->dat = 0;
     assert(!mmh->dat);

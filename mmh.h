@@ -6,7 +6,7 @@
 /*
  * A simple Min-Max Heap that stores values of type mmh_t.
  * The heap grows automatically as needed when inserting elements.
- * After heapifying, it is asking for min() and max() is O(1).
+ * After heapifying, asking for min() and max() is O(1).
  */
 
 typedef int mmh_t;
