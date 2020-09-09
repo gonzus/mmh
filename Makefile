@@ -1,37 +1,51 @@
-first: all
+NAME = mmh
 
-# compile for C2011
+# uncomment to make warnings into errors
+# CFLAGS += -Werror
+
+# uncomment to stop complaints about unused functions
+# CFLAGS += -Wno-unused-function
+
+CFLAGS += -I.
+CFLAGS += -g
+CFLAGS += -Wall -Wextra -Wshadow -Wpedantic
+CFLAGS += -D_DEFAULT_SOURCE -D_SVID_SOURCE -D_XOPEN_SOURCE -D_GNU_SOURCE
+
+# CFLAGS += -std=c89 -Wno-gcc-compat -Wno-comment
+# CFLAGS += -std=c99
 CFLAGS += -std=c11
 
-# turn on all possible AND useful, wonderful warnings
-CFLAGS += -Wall -Wextra -Wshadow -Wpedantic
+LIBRARY = lib$(NAME).a
 
-# use the builtin CLZ to count bits in a variable
-CFLAGS += -DHAVE_CLZ
+all: $(LIBRARY)
 
-# choose whether to compile for debugging or for efficiency
-# CFLAGS += -g
-CFLAGS += -O
-
-# all additional libraries we need
-LIBS +=
-
-C_SRC = \
+C_SRC_LIB = \
 	mmh.c \
-	main.c \
 
-C_EXE = mmh
+C_OBJ_LIB = $(C_SRC_LIB:.c=.o)
 
-C_OBJ = $(C_SRC:.c=.o)
+$(LIBRARY): $(C_OBJ_LIB)
+	ar -crs $@ $^
+
+C_SRC_TEST = $(wildcard t/*.c)
+C_OBJ_TEST = $(patsubst %.c, %.o, $(C_SRC_TEST))
+C_EXE_TEST = $(patsubst %.c, %, $(C_SRC_TEST))
 
 %.o: %.c
-	cc -c $(CFLAGS) -o $@ $^
+	cc $(CFLAGS) -c -o $@ $^
 
-$(C_EXE): $(C_OBJ)
-	cc -o $@ $^ $(LIBS)
+$(C_EXE_TEST): %: %.o $(LIBRARY)
+	cc $(CFLAGS) $(LDFLAGS) -o $@ $^ -ltap -lpthread
+
+tests: $(C_EXE_TEST)
+
+test: tests
+	@for t in $(C_EXE_TEST); do ./$$t; done
+
+valgrind: tests
+	@for t in $(C_EXE_TEST); do valgrind -q ./$$t; done
 
 clean:
-	rm -f $(C_OBJ)
-	rm -f $(C_EXE)
-
-all: $(C_EXE)
+	rm -f *.o
+	rm -f $(LIBRARY)
+	rm -f $(C_OBJ_TEST) $(C_EXE_TEST)
