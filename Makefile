@@ -7,7 +7,8 @@ NAME = mmh
 # CFLAGS += -Wno-unused-function
 
 CFLAGS += -I.
-CFLAGS += -g
+# CFLAGS += -g
+CFLAGS += -O
 CFLAGS += -Wall -Wextra -Wshadow -Wpedantic
 CFLAGS += -D_DEFAULT_SOURCE -D_SVID_SOURCE -D_XOPEN_SOURCE -D_GNU_SOURCE
 
@@ -20,6 +21,7 @@ LIBRARY = lib$(NAME).a
 all: $(LIBRARY)
 
 C_SRC_LIB = \
+	random.c \
 	mmh.c \
 
 C_OBJ_LIB = $(C_SRC_LIB:.c=.o)

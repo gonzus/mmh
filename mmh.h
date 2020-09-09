@@ -9,7 +9,7 @@
  * After heapifying, asking for min() and max() is O(1).
  */
 
-typedef int mmh_t;
+typedef int mmh_t;      // the type of elements stored in heap
 
 typedef struct MinMaxHeap {
     unsigned int cap;   // total heap capacity

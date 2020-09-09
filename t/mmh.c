@@ -1,6 +1,5 @@
-#include <stdlib.h>
-#include <sys/time.h>
 #include <tap.h>
+#include "random.h"
 #include "mmh.h"
 
 static int cmp(const void* vl, const void* vr) {
@@ -28,7 +27,7 @@ static void test_min_max(int top, int heapify, int grow, int erase) {
     int t = top - 1;
 
     for (int j = 0; j < top; ++j) {
-        mmh_t r = rand();
+        mmh_t r = random_in_range(0, top-1);
         data[j] = r;
         if (heapify) {
             // add and lose the heap property
@@ -48,7 +47,7 @@ static void test_min_max(int top, int heapify, int grow, int erase) {
     qsort(data, top, sizeof(mmh_t), cmp);
 
     for (int j = 0; j < erase; ++j) {
-        int from_top = rand() % 2;
+        int from_top = random_in_range(0, 1);
         if (from_top) {
             mmh_remove_max(mmh);
             --t;
@@ -66,7 +65,7 @@ static void test_min_max(int top, int heapify, int grow, int erase) {
     cmp_ok(hmin, "==", data[b], "MinMaxHeap min is %d for top %d, heapify %d, grow %d", data[b], top, heapify, grow);
 
     mmh_t hmax = mmh_max(mmh);
-    cmp_ok(hmax, "==", data[t], "MinMaxHeap max is %d for top %d, heapify %d, grow %d", data[b], top, heapify, grow);
+    cmp_ok(hmax, "==", data[t], "MinMaxHeap max is %d for top %d, heapify %d, grow %d", data[t], top, heapify, grow);
 
     free((void*) data);
     mmh_destroy(mmh);
@@ -82,13 +81,6 @@ static void test_heap_combinations(int top) {
             }
         }
     }
-}
-
-static void randomize(void) {
-    struct timeval tv;
-    gettimeofday(&tv, NULL);
-    unsigned long us = tv.tv_sec * 1000000 + tv.tv_usec;
-    srand(us);
 }
 
 int main(int argc, char* argv[]) {
