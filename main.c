@@ -4,10 +4,17 @@
 #include <sys/time.h>
 #include "mmh.h"
 
-static void test_min_max(int top) {
-    // MinMaxHeap* mmh = mmh_create_capacity(top);
-    MinMaxHeap* mmh = mmh_create();
-    int heapify = 1;
+static void test_min_max(int top, int heapify, int grow) {
+    MinMaxHeap* mmh = 0;
+    if (grow) {
+        // let heap grow dynamically
+        mmh = mmh_create();
+    } else {
+        // preallocate heap to hold top elements
+        mmh = mmh_create_capacity(top);
+    }
+
+    // keep track of min and max while adding to heap
     long long i = INT32_MAX;
     long long a = INT32_MIN;
     for (int j = 0; j < top; ++j) {
@@ -20,20 +27,23 @@ static void test_min_max(int top) {
             a = rr;
         }
         if (heapify) {
+            // add and lose the heap property
             mmh_add(mmh, r);
         } else {
+            // add and keep the heap property
             mmh_insert(mmh, r);
         }
     }
 
     if (heapify) {
+        // recover the heap property in one go
         mmh_heapify(mmh);
     }
 
     long long hmin = mmh_min(mmh);
     long long hmax = mmh_max(mmh);
-    printf("min %2s %lld %lld\n", hmin == i ? "OK" : "XX", hmin, i);
-    printf("max %2s %lld %lld\n", hmax == a ? "OK" : "XX", hmax, a);
+    printf("min %2s %d %d %d %lld %lld\n", hmin == i ? "OK" : "XX", top, heapify, grow, hmin, i);
+    printf("max %2s %d %d %d %lld %lld\n", hmax == a ? "OK" : "XX", top, heapify, grow, hmax, a);
     mmh_destroy(mmh);
 }
 
@@ -48,9 +58,14 @@ int main(int argc, char* argv[]) {
     (void) argc;
     (void) argv;
 
+    // printf("int min=%d max=%d -- %d\n", INT32_MIN, INT32_MAX, 0x8000);
     randomize();
-    for (int j = 1; j <= 10; ++j) {
-        test_min_max(10000);
+    for (int t = 1; t <= 1000000; t *= 10) {
+        for (int h = 0; h < 2; ++h) {
+            for (int g = 0; g < 2; ++g) {
+                test_min_max(t, h, g);
+            }
+        }
     }
 
     return 0;
