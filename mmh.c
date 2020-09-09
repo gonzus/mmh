@@ -1,5 +1,4 @@
 #include <assert.h>
-#include <math.h>
 #include <stdio.h>
 #include <stdint.h>
 #include <stdlib.h>
@@ -194,14 +193,19 @@ static unsigned int mmh_remove_pos(MinMaxHeap* mmh, unsigned int pos) {
 
 static bool mmh_is_min_level(MinMaxHeap* mmh, unsigned int pos) {
     (void) mmh;
-    // we basically need to know the MSB in pos+1
     pos += 1;
+
+    // we basically need to count the bits in pos+1
     unsigned int c = 0;
+#if HAVE_CLZ
+    c = __builtin_clz(pos);
+#else
     while (pos > 0) {
         ++c;
         pos >>= 1;
     }
-    return ((c&1) != 0);
+#endif
+    return ((c & 1) != 0);
 }
 
 static void mmh_push_down(MinMaxHeap* mmh, unsigned int pos) {

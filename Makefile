@@ -1,16 +1,20 @@
 first: all
 
+# compile for C2011
 CFLAGS += -std=c11
-CFLAGS += -Wall -Wextra -Wshadow -Wpedantic
-# TODO: get rid of these at some point
-# CFLAGS += -Wno-unused-function -Wno-unused-parameter
-CFLAGS += -g
-# CFLAGS += -D_DEFAULT_SOURCE -D_SVID_SOURCE -D_XOPEN_SOURCE -D_GNU_SOURCE
-# CFLAGS += -fPIC
-# CFLAGS += -DLOG_LEVEL=0
-# CFLAGS += -I/usr/include/mariadb
 
-LIBS += -lm
+# turn on all possible AND useful, wonderful warnings
+CFLAGS += -Wall -Wextra -Wshadow -Wpedantic
+
+# use the builtin CLZ to count bits in a variable
+CFLAGS += -DHAVE_CLZ
+
+# choose whether to compile for debugging or for efficiency
+# CFLAGS += -g
+CFLAGS += -O
+
+# all additional libraries we need
+LIBS +=
 
 C_SRC = \
 	mmh.c \
