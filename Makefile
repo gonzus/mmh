@@ -6,15 +6,12 @@ NAME = mmh
 # uncomment to stop complaints about unused functions
 # CFLAGS += -Wno-unused-function
 
+CFLAGS += -std=c11
+CFLAGS += -Wall -Wextra -Wshadow -Wpedantic
+CFLAGS += -DHAVE_CLZ
 CFLAGS += -I.
 # CFLAGS += -g
 CFLAGS += -O
-CFLAGS += -Wall -Wextra -Wshadow -Wpedantic
-CFLAGS += -D_DEFAULT_SOURCE -D_SVID_SOURCE -D_XOPEN_SOURCE -D_GNU_SOURCE
-
-# CFLAGS += -std=c89 -Wno-gcc-compat -Wno-comment
-# CFLAGS += -std=c99
-CFLAGS += -std=c11
 
 LIBRARY = lib$(NAME).a
 
